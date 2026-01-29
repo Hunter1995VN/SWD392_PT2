@@ -1,0 +1,103 @@
+@startuml
+' --- Cấu hình trình bày ---
+skinparam linetype ortho
+skinparam classAttributeIconSize 0
+hide empty members
+
+title "Class Diagram - Hotel Booking Module"
+
+' --- TẦNG CONTROLLER ---
+class BookingController <<Controller>> {
+    + makeReservation(guestId: String, roomIds: List, dates: DateRange): bool
+    + cancelReservation(bookingId: String): bool
+    - validateRequest(data: Object): bool
+}
+
+' --- TẦNG SERVICE (Interface & Implementation) ---
+interface IBookingService <<Service>> {
+    + {abstract} checkAvailability(roomId: String, date: Date): bool
+    + {abstract} calculateTotal(bookingId: String): double
+    + {abstract} applyDiscount(bookingId: String, code: String): void
+}
+
+class BookingService <<Service>> {
+    - discountRate: double
+    - taxRate: double
+    - serviceFee: double
+    + checkAvailability(roomId: String, date: Date): bool
+    + calculateTotal(bookingId: String): double
+    + applyDiscount(bookingId: String, code: String): void
+}
+
+' --- TẦNG REPOSITORY ---
+interface IBookingRepository <<Repository>> {
+    + save(booking: Booking): void
+    + findById(id: String): Booking
+    + updateStatus(id: String, status: String): void
+}
+
+' --- TẦNG ENTITY (Các thực thể dữ liệu) ---
+class Hotel <<Entity>> {
+    - hotelId: String
+    - name: String
+    - address: String
+    + getRooms(): List<Room>
+    + updateInfo(name: String): void
+}
+
+class Room <<Entity>> {
+    - roomId: String
+    - roomNumber: int
+    - price: double
+    + isAvailable(): bool
+    + updatePrice(newPrice: double): void
+}
+
+class RoomType <<Entity>> {
+    - typeId: String
+    - typeName: String
+    - description: String
+    + getBasePrice(): double
+    + getDescription(): String
+}
+
+class Guest <<Entity>> {
+    - guestId: String
+    - fullName: String
+    - email: String
+    + getHistory(): List<Booking>
+    + updateProfile(email: String): void
+}
+
+class Booking <<Entity>> {
+    - bookingId: String
+    - checkInDate: Date
+    - status: String
+    + calculateDuration(): int
+    + confirm(): void
+}
+
+' --- QUAN HỆ (RELATIONSHIPS) ---
+
+' 1. Realization: Service thực thi Interface
+IBookingService <|.. BookingService
+
+' 2. Dependency: Controller dùng Interface Service
+BookingController ..> IBookingService
+
+' 3. Association: Service dùng Repository
+BookingService --> IBookingRepository
+
+' 4. Composition: Hotel quản lý Room (Hotel mất, Room mất)
+Hotel "1" *-- "1..*" Room : contains >
+
+' 5. Association: Room thuộc về RoomType
+Room "0..*" --> "1" RoomType : defines >
+
+' 6. Aggregation: Guest có Booking (Guest mất, Booking còn)
+Guest "1" o-- "0..*" Booking : makes >
+
+' 7. Association: Booking bao gồm Room
+Booking "0..*" -- "1..*" Room : includes >
+
+@enduml
